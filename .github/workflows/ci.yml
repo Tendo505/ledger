@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests on H2 and PostgreSQL 16, Docker image
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ledger
+          POSTGRES_USER: ledger
+          POSTGRES_PASSWORD: ledger
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U ledger" --health-interval 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Tests on in-memory H2
+        run: ./gradlew test --console=plain
+      # Real row locks and real concurrent transactions: the concurrency tests matter most here.
+      - name: Tests on PostgreSQL 16
+        run: ./gradlew cleanTest test --console=plain
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ledger
+          SPRING_DATASOURCE_USERNAME: ledger
+          SPRING_DATASOURCE_PASSWORD: ledger
+      - name: Docker image builds and answers
+        run: |
+          docker build -t ledger .
+          docker run -d -p 8080:8080 --name ledger ledger
+          for i in $(seq 60); do curl -sf localhost:8080/actuator/health && exit 0; sleep 1; done
+          docker logs ledger; exit 1
