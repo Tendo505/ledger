@@ -2,6 +2,10 @@
 
 **A double-entry payments ledger API in Java 21 and Spring Boot.** It has accounts, transfers that can't overdraw or double-spend, idempotency keys that make retries safe, card-style holds (authorize → capture / void / expire), signed webhooks via a transactional outbox, and an audit that recomputes the books from scratch.
 
+<p align="center">
+  <img src="docs/overview.png" width="760" alt="ledger overview: example usage and architecture">
+</p>
+
 [![CI](https://github.com/Tendo505/ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/Tendo505/ledger/actions/workflows/ci.yml)
 
 ```bash
